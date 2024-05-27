@@ -2,11 +2,13 @@ import express from "express";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import helmet from "helmet";
-import mongoSanitize from "express-mongo-sanitize";
+// import mongoSanitize from "express-mongo-sanitize";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import fileUpload from "express-fileupload";
 import cors from "cors";
+import createHttpError from "http-errors";
+import routes from "./routes/index.js";
 
 //dotenv config
 dotenv.config();
@@ -31,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 //Sanitize Request Data middleware
-app.use(mongoSanitize);
+// app.use(mongoSanitize);
 
 //Enable Cookie Parser middleware
 app.use(cookieParser());
@@ -45,10 +47,33 @@ app.use(fileUpload({ useTempFiles: true }));
 //Cors Middleware
 app.use(cors());
 
-//-------------End middlewares-----------------//
+//api v1 routes
+app.use("/api/v1", routes);
+
+//--------------End Middlewares---------------- //
 
 app.post("/test", (req, res) => {
-  res.send(req.body);
+  throw createHttpError(400, "This is a REQUEST ERROR");
+});
+
+app.get("/api", (req, res) => {
+  res.send("Hello from API");
+});
+
+app.use(async (req, res, next) => {
+  next(createHttpError(404, "This route does not exist"));
+});
+
+//Error Handling - MUST BE AT THE END OF THE FILE AND CALLS OTHERWISE WON´T BE CALLED
+app.use(async (err, req, res, next) => {
+  res.status(err.status || 500);
+  res.header("Content-Type", "application/json");
+  res.send({
+    error: {
+      status: err.status || 500,
+      message: err.message,
+    },
+  });
 });
 
 export default app;
